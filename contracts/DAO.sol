@@ -28,6 +28,11 @@ contract DAO {
 		address creator
 	);
 
+	event Vote(
+		uint256 id, 
+		address investor
+	);
+
 	constructor(Token _token, uint256 _quorum) {
 		owner = msg.sender;
 		token = _token;
@@ -39,7 +44,7 @@ contract DAO {
 
 	modifier onlyInvestor() {
 		require(
-			Token(token).balanceOf(msg.sender) > 0, 
+			token.balanceOf(msg.sender) > 0, 
 			"must be token holder"
 		);
 		_;
@@ -70,6 +75,25 @@ contract DAO {
 			_recipient,
 			msg.sender
 		);
+	}
+
+	 mapping(address => mapping(uint256 => bool)) votes;
+
+	function vote(uint256 _id) external onlyInvestor {
+		// Fetch proposal from mapping by id
+		Proposal storage proposal = proposals[_id];
+
+		// Don't let investors vote twice
+		require(!votes[msg.sender][_id], "already voted");
+
+		// update votes
+		proposal.votes += proposal.votes + token.balanceOf(msg.sender);
+
+		// Track that user has voted
+		votes[msg.sender][_id] = true;
+
+		// Emit an event
+		emit Vote(_id, msg.sender);
 	}
 
 
